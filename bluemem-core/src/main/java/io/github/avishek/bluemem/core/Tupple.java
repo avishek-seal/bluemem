@@ -8,7 +8,7 @@ public class Tupple<K, V> implements Serializable{
 	
 	private K key;
 	
-	private V value;
+	private Value<V> value;
 	
 	private Integer duration;
 
@@ -20,11 +20,11 @@ public class Tupple<K, V> implements Serializable{
 		this.key = key;
 	}
 
-	public V getValue() {
+	public Value<V> getValue() {
 		return value;
 	}
 
-	public void setValue(V value) {
+	public void setValue(Value<V> value) {
 		this.value = value;
 	}
 

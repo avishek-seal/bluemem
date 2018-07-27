@@ -15,8 +15,9 @@ public class DataStore<K, V> implements Serializable {
 		
 	}
 
-	public DataStore(Map<K, V> STORE) {
+	public DataStore(Map<K, V> STORE, Map<K, Integer> DURATION) {
 		this.STORE = STORE;
+		this.DURATION = DURATION;
 	}
 	
 	public void put(K key, V value) {

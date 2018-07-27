@@ -11,4 +11,6 @@ public interface BlueMemSpecification<K, V> {
 	public void delete(K key);
 	
 	public String keys();
+	
+	public long getTimeStamp();
 }

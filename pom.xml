@@ -21,6 +21,7 @@
 		<module>bluemem-core</module>
 		<module>bluemem-implementation</module>
 		<module>bluemem-configuration</module>
+		<module>bluemem-communicator</module>
 	</modules>
 
 	<dependencies>

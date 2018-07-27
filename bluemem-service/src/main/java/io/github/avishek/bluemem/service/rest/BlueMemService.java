@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.github.avishek.bluemem.core.BlueMemLogicOperation;
 import io.github.avishek.bluemem.core.Tupple;
+import io.github.avishek.bluemem.core.Value;
 import io.github.avishek.bluemem.exception.BlueMemException;
 import io.github.avishek.bluemem.specification.BlueMemSpecification;
 
@@ -66,18 +67,19 @@ public class BlueMemService {
 		});
 	}
 	
-	private static void commonExecution(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, BlueMemLogicOperation<Tupple<String, String>> blueMemLogicOperation) throws IOException {
+	private void commonExecution(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, BlueMemLogicOperation<Tupple<String, String>> blueMemLogicOperation) throws IOException {
 		try {
 			String response = blueMemLogicOperation.execute(prepareTupple(httpServletRequest));
 			httpServletResponse.getWriter().append(response);
 		} catch (BlueMemException e) {
 			httpServletResponse.getWriter().append(e.getMessage());
 		} catch (Exception e) {
+			e.printStackTrace();
 			httpServletResponse.getWriter().append("Server Error");
 		}
 	}
 	
-	private static Tupple<String, String> prepareTupple(HttpServletRequest httpServletRequest) throws IOException {
+	private Tupple<String, String> prepareTupple(HttpServletRequest httpServletRequest) throws IOException {
 		if(Objects.isNull(httpServletRequest)) {
 			return null;
 		}
@@ -92,11 +94,25 @@ public class BlueMemService {
 			}
 			
 			if(tuppleProperties.length >= 2) {
-				tupple.setValue(tuppleProperties[1]);
+				final Value<String> value = new Value<>(); 
+				value.setValue(tuppleProperties[1]);
+				tupple.setValue(value);
 			}
 
 			if(tuppleProperties.length >= 3) {
 				tupple.setDuration(Integer.parseInt(tuppleProperties[2]));
+			}
+			
+			if(tuppleProperties.length >= 4) {
+				tupple.getValue().setTimestamp(Long.parseLong(tuppleProperties[3]));
+			} else {
+				if(Objects.isNull(tupple.getValue())) {
+					final Value<String> value = new Value<>(); 
+					value.setTimestamp(blueMemSpecification.getTimeStamp());
+					tupple.setValue(value);
+				} else {
+					tupple.getValue().setTimestamp(blueMemSpecification.getTimeStamp());
+				}
 			}
 		}
 		

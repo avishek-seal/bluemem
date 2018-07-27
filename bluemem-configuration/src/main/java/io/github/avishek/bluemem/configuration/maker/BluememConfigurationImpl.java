@@ -90,10 +90,10 @@ public class BluememConfigurationImpl implements BluememConfiguration, Initializ
 
 	@Override
 	public boolean isRoot() {
-		return Objects.isNull(node.getParent())
-				&& Objects.isNull(node.getRoot())
-				&& StringUtils.isEmpty(node.getParent().getUrl())
-				&& StringUtils.isEmpty(node.getRoot().getUrl());
+		return (Objects.isNull(node.getParent())
+				&& Objects.isNull(node.getRoot()))
+				|| (StringUtils.isEmpty(node.getParent().getUrl())
+				&& StringUtils.isEmpty(node.getRoot().getUrl()));
 	}
 	
 	@Override
