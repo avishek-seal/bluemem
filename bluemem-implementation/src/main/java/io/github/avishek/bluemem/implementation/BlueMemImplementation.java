@@ -8,6 +8,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import io.github.avishek.bluemem.configuration.maker.BluememConfiguration;
 import io.github.avishek.bluemem.core.DataStore;
 import io.github.avishek.bluemem.core.Tupple;
 import io.github.avishek.bluemem.exception.NoDataToPutException;
@@ -19,6 +20,9 @@ import io.github.avishek.bluemem.specification.BlueMemSpecification;
 public class BlueMemImplementation implements BlueMemSpecification<String, String>, InitializingBean, DisposableBean{
 
 	private DataStore<String, String> DATASTORE;
+	
+	@Autowired
+	private BluememConfiguration bluememConfiguration;
 	
 	@Autowired
 	private BlueMemEvents<String, String> blueMemEvents;
@@ -34,6 +38,7 @@ public class BlueMemImplementation implements BlueMemSpecification<String, Strin
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		DATASTORE = new DataStore<>(new HashMap<>(initialCapacity, loadFactor));
+		System.out.println("################# IS ROOT ################### "+bluememConfiguration.isRoot());
 	}
 	
 	@Override

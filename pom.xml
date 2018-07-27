@@ -20,6 +20,7 @@
 		<module>bluemem-service</module>
 		<module>bluemem-core</module>
 		<module>bluemem-implementation</module>
+		<module>bluemem-configuration</module>
 	</modules>
 
 	<dependencies>

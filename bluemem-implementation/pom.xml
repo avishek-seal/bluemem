@@ -12,5 +12,10 @@
   		<artifactId>bluemem-core</artifactId>
   		<version>0.0.1-SNAPSHOT</version>
   	</dependency>
+  	<dependency>
+  		<groupId>io.github.avishek</groupId>
+  		<artifactId>bluemem-configuration</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  	</dependency>
   </dependencies>
 </project>
