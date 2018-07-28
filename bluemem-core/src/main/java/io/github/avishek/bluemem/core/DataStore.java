@@ -34,6 +34,7 @@ public class DataStore<K, V> implements Serializable {
 	}
 	
 	public V delete(K key) {
+		DURATION.remove(key);
 		return STORE.remove(key);
 	}
 	
@@ -41,4 +42,11 @@ public class DataStore<K, V> implements Serializable {
 		return STORE.keySet().toString();
 	}
 
+	public Map<K, V> getSTORE() {
+		return STORE;
+	}
+
+	public Map<K, Integer> getDURATION() {
+		return DURATION;
+	}
 }

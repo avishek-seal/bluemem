@@ -47,22 +47,22 @@ public class BlueMemService {
 	
 	@GetMapping(URL+"/keys/{key}")
 	public void get(@PathVariable("key") String key, HttpServletResponse httpServletResponse) throws IOException {
-		commonExecution(null, httpServletResponse, (tupple) -> {
+		commonExecution(key, httpServletResponse, (tupple) -> {
 			return blueMemSpecification.get(key);
 		});
 	}
 	
 	@GetMapping(URL+"/keys")
 	public void getKeys(HttpServletResponse httpServletResponse) throws IOException {
-		commonExecution(null, httpServletResponse, (tupple) -> {
+		commonExecution(httpServletResponse, (tupple) -> {
 			return blueMemSpecification.keys();
 		});
 	}
 	
 	@DeleteMapping(URL+"/keys/{key}")
 	public void delete(@PathVariable("key") String key, HttpServletResponse httpServletResponse) throws IOException {
-		commonExecution(null, httpServletResponse, (tupple) -> {
-			blueMemSpecification.delete(key);
+		commonExecution(key, httpServletResponse, (tupple) -> {
+			blueMemSpecification.delete(tupple);
 			return "Success";
 		});
 	}
@@ -70,6 +70,29 @@ public class BlueMemService {
 	private void commonExecution(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, BlueMemLogicOperation<Tupple<String, String>> blueMemLogicOperation) throws IOException {
 		try {
 			String response = blueMemLogicOperation.execute(prepareTupple(httpServletRequest));
+			httpServletResponse.getWriter().append(response);
+		} catch (BlueMemException e) {
+			httpServletResponse.getWriter().append(e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
+			httpServletResponse.getWriter().append("Server Error");
+		}
+	}
+	
+	private void commonExecution(HttpServletResponse httpServletResponse, BlueMemLogicOperation<Tupple<String, String>> blueMemLogicOperation) throws IOException {
+		try {
+			httpServletResponse.getWriter().append(blueMemLogicOperation.execute(null));
+		} catch (BlueMemException e) {
+			httpServletResponse.getWriter().append(e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
+			httpServletResponse.getWriter().append("Server Error");
+		}
+	}
+	
+	private void commonExecution(String key, HttpServletResponse httpServletResponse, BlueMemLogicOperation<Tupple<String, String>> blueMemLogicOperation) throws IOException {
+		try {
+			String response = blueMemLogicOperation.execute(prepareTupple(key));
 			httpServletResponse.getWriter().append(response);
 		} catch (BlueMemException e) {
 			httpServletResponse.getWriter().append(e.getMessage());
@@ -115,6 +138,20 @@ public class BlueMemService {
 				}
 			}
 		}
+		
+		return tupple;
+	}
+	
+	private Tupple<String, String> prepareTupple(String key) throws IOException {
+		if(Objects.isNull(key)) {
+			return null;
+		}
+		
+		final Tupple<String, String> tupple = new Tupple<>();
+		
+		tupple.setKey(key);
+		tupple.setValue(new Value<>());
+		tupple.getValue().setTimestamp(blueMemSpecification.getTimeStamp());
 		
 		return tupple;
 	}

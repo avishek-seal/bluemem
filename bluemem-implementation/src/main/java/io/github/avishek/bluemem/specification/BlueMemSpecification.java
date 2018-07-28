@@ -8,7 +8,7 @@ public interface BlueMemSpecification<K, V> {
 	
 	public String get(K key);
 	
-	public void delete(K key);
+	public void delete(Tupple<String, String> tupple);
 	
 	public String keys();
 	

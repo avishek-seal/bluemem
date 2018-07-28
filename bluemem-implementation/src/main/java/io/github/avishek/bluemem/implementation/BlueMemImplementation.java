@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -57,6 +58,7 @@ public class BlueMemImplementation implements BlueMemSpecification<String, Strin
 		try (FileInputStream is = new FileInputStream(bluememConfiguration.getBluememDataFileURL());
 				ObjectInputStream ois = new ObjectInputStream(is)) {
 			DATASTORE = (DataStore<String, Value<String>>) ois.readObject();
+			decideAndRemove();
 		} catch (FileNotFoundException fileNotFoundException) {
 			System.out.println("No Data Persisted");
 		}
@@ -66,13 +68,34 @@ public class BlueMemImplementation implements BlueMemSpecification<String, Strin
 		}
 	}
 
+	private void decideAndRemove() {
+		final long currentTimestamp = getTimeStamp();
+		
+		for(Map.Entry<String, Value<String>> entry : DATASTORE.getSTORE().entrySet()) {
+			int remaining = isDeletable(entry.getValue().getTimestamp(), currentTimestamp, DATASTORE.getDURATION().get(entry.getKey()));
+			if(remaining <= 0) {
+				delete(entry.getKey(), entry.getValue(), null);
+			} else {
+				blueMemScheduler.schedule(remaining, () -> {
+					delete(entry.getKey(), entry.getValue(), null);
+				});
+			}
+		}
+	}
+	
+	private int isDeletable(long entryTimestamp, long currentTimestamp, int duration) {
+		long timespend = (currentTimestamp - entryTimestamp) / 1000;
+		
+		return duration - (int)timespend; 
+	}
+	
 	@PreDestroy
 	public void destroy() throws Exception {
-		final FileOutputStream fos = new FileOutputStream(bluememConfiguration.getBluememDataFileURL());
-		final ObjectOutputStream oos = new ObjectOutputStream(fos);
-		oos.writeObject(DATASTORE);
-		IOUtils.closeQuietly(oos);
-		IOUtils.closeQuietly(fos);
+		final FileOutputStream dataFileOutputStream = new FileOutputStream(bluememConfiguration.getBluememDataFileURL());
+		final ObjectOutputStream dataObjectOutputStream = new ObjectOutputStream(dataFileOutputStream);
+		dataObjectOutputStream.writeObject(DATASTORE);
+		IOUtils.closeQuietly(dataObjectOutputStream);
+		IOUtils.closeQuietly(dataFileOutputStream);
 	}
 
 	@Override
@@ -93,7 +116,7 @@ public class BlueMemImplementation implements BlueMemSpecification<String, Strin
 				decideAndPut(tupple, true);
 
 				blueMemScheduler.schedule(tupple.getDuration(), () -> {
-					DATASTORE.delete(tupple.getKey());
+					delete(tupple);
 				});
 			}
 		}
@@ -124,8 +147,21 @@ public class BlueMemImplementation implements BlueMemSpecification<String, Strin
 	}
 
 	@Override
-	public void delete(String key) {
-		DATASTORE.delete(key);
+	public void delete(Tupple<String, String> tupple) {
+		delete(tupple.getKey(), tupple.getValue(), tupple);
+	}
+	
+	private void delete(String key, Value<String> value, Tupple<String, String> tupple) {
+		if(DATASTORE.get(key).getTimestamp() <= value.getTimestamp()) {//delete only for latest call
+			DATASTORE.delete(key);
+			
+			if(Objects.isNull(tupple)) {
+				Tupple<String, String> tupple2 = new Tupple<String, String>();
+				blueMemEvents.onDelete(tupple2);
+			} else {
+				blueMemEvents.onDelete(tupple);
+			}
+		}
 	}
 
 	@Override
