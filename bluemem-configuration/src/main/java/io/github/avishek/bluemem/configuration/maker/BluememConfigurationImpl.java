@@ -39,6 +39,9 @@ public class BluememConfigurationImpl implements BluememConfiguration, Initializ
 
 	@Value("${bluemem.config.filename}")
 	private String CONFIG_FILE_NAME;
+	
+	@Value("${bluemem.data.filename}")
+	private String DATA_FILE_NAME;
 
 	private String HOME_DIR;
 	
@@ -101,6 +104,11 @@ public class BluememConfigurationImpl implements BluememConfiguration, Initializ
 		return CONF_DIR+"/"+CONFIG_FILE_NAME;
 	}
 
+	@Override
+	public String getBluememDataFileURL() {
+		return DATA_DIR+"/"+DATA_FILE_NAME;
+	}
+	
 	private void prepareNodeConfiguration() throws IOException {
 		String bluememConfigData = new String(Files.readAllBytes(Paths.get(getBluememConfigurationFileURL())));
 		node = GSON.fromJson(bluememConfigData, Node.class);

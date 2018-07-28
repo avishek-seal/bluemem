@@ -13,6 +13,8 @@ public interface BluememConfiguration {
 	
 	String getBluememConfigurationFileURL();
 	
+	String getBluememDataFileURL();
+	
 	Node getRootNode();
 	
 	Node getParentNode();

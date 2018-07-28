@@ -1,6 +1,10 @@
 package io.github.avishek.bluemem.core;
 
-public class Value<V> {
+import java.io.Serializable;
+
+public class Value<V> implements Serializable{
+
+	private static final long serialVersionUID = -5876579788472488377L;
 
 	private V value;
 	
