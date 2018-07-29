@@ -21,7 +21,7 @@ public class BlueMemAgentImplementation implements BlueMemAgent{
 		connection.setRequestProperty("Accept", CONTENT_TYPE);
 		
 		try{
-			if (connection.getResponseCode() != 200) {
+			if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 				throw new RuntimeException("Failed : HTTP error code : " + connection.getResponseCode());
 			}
 			
@@ -39,11 +39,14 @@ public class BlueMemAgentImplementation implements BlueMemAgent{
 		connection.setRequestMethod("POST");
 		connection.setRequestProperty("Content-Type", CONTENT_TYPE);
 		
+		System.out.println("URL :: " +urlString);
+		System.out.println("Payload :: " +payload);
+		
 		try (OutputStream os = connection.getOutputStream()){
 			os.write(payload.getBytes());
 			os.flush();
 
-			if (connection.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
+			if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 				throw new RuntimeException("Failed : HTTP error code : " + connection.getResponseCode());
 			}
 
@@ -65,7 +68,7 @@ public class BlueMemAgentImplementation implements BlueMemAgent{
 			os.write(payload.getBytes());
 			os.flush();
 
-			if (connection.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
+			if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 				throw new RuntimeException("Failed : HTTP error code : " + connection.getResponseCode());
 			}
 

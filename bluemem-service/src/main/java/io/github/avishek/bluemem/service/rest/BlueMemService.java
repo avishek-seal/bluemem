@@ -18,6 +18,7 @@ import io.github.avishek.bluemem.core.BlueMemLogicOperation;
 import io.github.avishek.bluemem.core.Tupple;
 import io.github.avishek.bluemem.core.Value;
 import io.github.avishek.bluemem.exception.BlueMemException;
+import io.github.avishek.bluemem.specification.BlueMemConverter;
 import io.github.avishek.bluemem.specification.BlueMemSpecification;
 
 @RestController
@@ -27,6 +28,9 @@ public class BlueMemService {
 	
 	@Autowired
 	private BlueMemSpecification<String, String> blueMemSpecification;
+	
+	@Autowired
+	private BlueMemConverter blueMemConverter;
 	
 	@PostMapping(URL)
 	public void post(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) throws IOException{
@@ -62,7 +66,7 @@ public class BlueMemService {
 	@DeleteMapping(URL+"/keys/{key}")
 	public void delete(@PathVariable("key") String key, HttpServletResponse httpServletResponse) throws IOException {
 		commonExecution(key, httpServletResponse, (tupple) -> {
-			blueMemSpecification.delete(tupple);
+			blueMemSpecification.delete(tupple, false);
 			return "Success";
 		});
 	}
@@ -107,39 +111,7 @@ public class BlueMemService {
 			return null;
 		}
 		
-		final String body = httpServletRequest.getReader().readLine();
-		final String[] tuppleProperties = body.split("\\|");
-		final Tupple<String, String> tupple = new Tupple<>();
-		
-		if(Objects.nonNull(tuppleProperties)) {
-			if(tuppleProperties.length >= 1) {
-				tupple.setKey(tuppleProperties[0]);
-			}
-			
-			if(tuppleProperties.length >= 2) {
-				final Value<String> value = new Value<>(); 
-				value.setValue(tuppleProperties[1]);
-				tupple.setValue(value);
-			}
-
-			if(tuppleProperties.length >= 3) {
-				tupple.setDuration(Integer.parseInt(tuppleProperties[2]));
-			}
-			
-			if(tuppleProperties.length >= 4) {
-				tupple.getValue().setTimestamp(Long.parseLong(tuppleProperties[3]));
-			} else {
-				if(Objects.isNull(tupple.getValue())) {
-					final Value<String> value = new Value<>(); 
-					value.setTimestamp(blueMemSpecification.getTimeStamp());
-					tupple.setValue(value);
-				} else {
-					tupple.getValue().setTimestamp(blueMemSpecification.getTimeStamp());
-				}
-			}
-		}
-		
-		return tupple;
+		return blueMemConverter.toModel(httpServletRequest.getReader().readLine());
 	}
 	
 	private Tupple<String, String> prepareTupple(String key) throws IOException {

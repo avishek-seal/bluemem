@@ -3,8 +3,10 @@ package io.github.avishek.bluemem.implementation;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.MalformedURLException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.PreDestroy;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -22,6 +25,7 @@ import io.github.avishek.bluemem.core.Tupple;
 import io.github.avishek.bluemem.core.Value;
 import io.github.avishek.bluemem.exception.NoDataToPutException;
 import io.github.avishek.bluemem.specification.BlueMemEvents;
+import io.github.avishek.bluemem.specification.BlueMemMasterClusterSpecification;
 import io.github.avishek.bluemem.specification.BlueMemScheduler;
 import io.github.avishek.bluemem.specification.BlueMemSpecification;
 
@@ -40,21 +44,36 @@ public class BlueMemImplementation implements BlueMemSpecification<String, Strin
 
 	@Autowired
 	private BlueMemScheduler blueMemScheduler;
+	
+	@Autowired
+	private BlueMemMasterClusterSpecification<String, String> blueMemMasterClusterSpecification;
 
 	private int initialCapacity = 100;
 
 	private float loadFactor = 0.9f;
 
 	@Override
-	public long getTimeStamp() {
-		synchronized (LOCK) {
-			return System.currentTimeMillis();
+	public long getTimeStamp() throws MalformedURLException, IOException {
+		if(bluememConfiguration.isRoot()) {
+			synchronized (LOCK) {
+				return System.currentTimeMillis();
+			}
+		} else {
+			return blueMemMasterClusterSpecification.getTimestamp();
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public void afterPropertiesSet() throws Exception {
+		blueMemEvents.addPutEventListener((tupple) -> {
+			blueMemMasterClusterSpecification.callForPut(tupple);
+		});
+		
+		blueMemEvents.addDeleteEventListener((tupple) -> {
+			blueMemMasterClusterSpecification.callForDelete(tupple);
+		});
+		
 		try (FileInputStream is = new FileInputStream(bluememConfiguration.getBluememDataFileURL());
 				ObjectInputStream ois = new ObjectInputStream(is)) {
 			DATASTORE = (DataStore<String, Value<String>>) ois.readObject();
@@ -66,18 +85,22 @@ public class BlueMemImplementation implements BlueMemSpecification<String, Strin
 		if (Objects.isNull(DATASTORE)) {
 			DATASTORE = new DataStore<>(new ConcurrentHashMap<>(initialCapacity, loadFactor), new ConcurrentHashMap<>(initialCapacity, loadFactor));
 		}
+		
+		new Thread(() -> {
+			blueMemMasterClusterSpecification.traceNodes();
+		}).start();
 	}
 
-	private void decideAndRemove() {
+	private void decideAndRemove() throws MalformedURLException, IOException {
 		final long currentTimestamp = getTimeStamp();
 		
 		for(Map.Entry<String, Value<String>> entry : DATASTORE.getSTORE().entrySet()) {
 			int remaining = isDeletable(entry.getValue().getTimestamp(), currentTimestamp, DATASTORE.getDURATION().get(entry.getKey()));
 			if(remaining <= 0) {
-				delete(entry.getKey(), entry.getValue(), null);
+				delete(entry.getKey(), entry.getValue(), null, false);
 			} else {
 				blueMemScheduler.schedule(remaining, () -> {
-					delete(entry.getKey(), entry.getValue(), null);
+					delete(entry.getKey(), entry.getValue(), null, false);
 				});
 			}
 		}
@@ -116,7 +139,7 @@ public class BlueMemImplementation implements BlueMemSpecification<String, Strin
 				decideAndPut(tupple, true);
 
 				blueMemScheduler.schedule(tupple.getDuration(), () -> {
-					delete(tupple);
+					delete(tupple, true);
 				});
 			}
 		}
@@ -147,19 +170,21 @@ public class BlueMemImplementation implements BlueMemSpecification<String, Strin
 	}
 
 	@Override
-	public void delete(Tupple<String, String> tupple) {
-		delete(tupple.getKey(), tupple.getValue(), tupple);
+	public void delete(Tupple<String, String> tupple, boolean scheduler) {
+		delete(tupple.getKey(), tupple.getValue(), tupple, scheduler);
 	}
 	
-	private void delete(String key, Value<String> value, Tupple<String, String> tupple) {
-		if(DATASTORE.get(key).getTimestamp() <= value.getTimestamp()) {//delete only for latest call
+	private void delete(String key, Value<String> value, Tupple<String, String> tupple, boolean scheduler) {
+		if(StringUtils.isNotBlank(key) && Objects.nonNull(DATASTORE.get(key)) && DATASTORE.get(key).getTimestamp() <= value.getTimestamp()) {//delete only for latest call
 			DATASTORE.delete(key);
 			
-			if(Objects.isNull(tupple)) {
-				Tupple<String, String> tupple2 = new Tupple<String, String>();
-				blueMemEvents.onDelete(tupple2);
-			} else {
-				blueMemEvents.onDelete(tupple);
+			if(!scheduler) {
+				if(Objects.isNull(tupple)) {
+					Tupple<String, String> tupple2 = new Tupple<String, String>();
+					blueMemEvents.onDelete(tupple2);
+				} else {
+					blueMemEvents.onDelete(tupple);
+				}
 			}
 		}
 	}

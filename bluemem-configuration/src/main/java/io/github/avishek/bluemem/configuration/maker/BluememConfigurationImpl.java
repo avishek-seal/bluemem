@@ -42,6 +42,15 @@ public class BluememConfigurationImpl implements BluememConfiguration, Initializ
 	
 	@Value("${bluemem.data.filename}")
 	private String DATA_FILE_NAME;
+	
+	@Value("${bluemem.resource.ping}")
+	private String PING_RESOURCE;
+	
+	@Value("${bluemem.resource.timestamp}")
+	private String TIMESTAMP_RESOURCE;
+	
+	@Value("${bluemem.resource.bluemem}")
+	private String BLUEMEM_RESOURCE;
 
 	private String HOME_DIR;
 	
@@ -112,6 +121,58 @@ public class BluememConfigurationImpl implements BluememConfiguration, Initializ
 	private void prepareNodeConfiguration() throws IOException {
 		String bluememConfigData = new String(Files.readAllBytes(Paths.get(getBluememConfigurationFileURL())));
 		node = GSON.fromJson(bluememConfigData, Node.class);
+		
+		if(StringUtils.isEmpty(node.getName())) {
+			System.err.println("Error :: Please Define the Name of this Node");
+			System.exit(1);
+		}
+		
+		if(hasChildren()) {
+			boolean error = false;
+			
+			int pos = 1;
+			for(Cluster cluster : node.getClusters()) {
+				if(StringUtils.isEmpty(cluster.getName())) {
+					System.err.println("Error :: Please Define the Name of Cluster["+pos+"]");
+					error = error || true;
+				}
+				
+				if(StringUtils.isEmpty(cluster.getUrl())) {
+					System.err.println("Error :: Please Define the URL of Cluster["+pos+"]");
+					error = error || true;
+				}
+				pos++;
+			}
+			
+			if(error) {
+				System.exit(1);
+			}
+		}
+	}
+	
+	@Override
+	public String getPingURL(String baseURL, String name) {
+		return baseURL+"/"+PING_RESOURCE + "?name="+name;
+	}
+	
+	@Override
+	public String getTimeStampURL(String baseURL) {
+		return baseURL+"/"+TIMESTAMP_RESOURCE;
+	}
+	
+	@Override
+	public String getBlueMemURL(String baseURL, String key) {
+		if(StringUtils.isEmpty(key)) {
+			return baseURL+"/"+BLUEMEM_RESOURCE;
+		} else {
+			return baseURL+"/"+BLUEMEM_RESOURCE+"/keys/"+key;
+		}
+		
+	}
+	
+	@Override
+	public String getNodeName() {
+		return node.getName();
 	}
 
 }

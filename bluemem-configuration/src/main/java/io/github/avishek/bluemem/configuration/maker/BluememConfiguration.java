@@ -24,4 +24,12 @@ public interface BluememConfiguration {
 	boolean isRoot();
 	
 	boolean hasChildren();
+	
+	String getPingURL(String baseURL, String name);
+	
+	String getTimeStampURL(String baseURL);
+	
+	String getBlueMemURL(String baseURL, String key);
+	
+	String getNodeName();
 }
